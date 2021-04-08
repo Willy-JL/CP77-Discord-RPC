@@ -1,3 +1,4 @@
+#include <string_view>
 #include <filesystem>
 #include <fstream>
 #include <thread>
@@ -8,17 +9,19 @@
 
 #include <Windows.h>
 
+using namespace std::literals;
 using namespace std::chrono_literals;
 
-#define MODNAME "CP77 Discord RPC"
+constexpr auto MODNAME = "CP77 Discord RPC"sv;
 
+static std::filesystem::path rootDir;
 static HANDLE modInstanceMutex { nullptr };
 static std::unique_ptr<std::thread> rpcThread { };
 static std::atomic_bool rpcThreadRunning { true };
+static unsigned long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
 
-std::string getCWD(std::string);
-void updatePresence(std::string, discord::Core*, unsigned long long);
+void updatePresence(discord::Core*);
 bool shouldRun() {
     return rpcThreadRunning;
 }
@@ -31,17 +34,16 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reasonForCall, LPVOID) {
     switch(reasonForCall) {
         case DLL_PROCESS_ATTACH: {
 
-            std::string rootDir = getCWD(MODNAME);
-
-            // Quit if companion was not found
-            if (rootDir == "null") {
-                break;
-            }
-
             // Check for correct product name
             wchar_t exePathBuf[MAX_PATH] { 0 };
             GetModuleFileName(GetModuleHandle(nullptr), exePathBuf, std::size(exePathBuf));
             std::filesystem::path exePath = exePathBuf;
+            rootDir = exePath.parent_path() / "plugins/cyber_engine_tweaks/mods" / MODNAME;
+
+            // Quit if companion was not found
+            if (!std::filesystem::exists(rootDir / "init.lua")) {
+                break;
+            }
 
             bool exeValid = false;
             int verInfoSz = GetFileVersionInfoSize(exePathBuf, nullptr);
@@ -91,15 +93,13 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reasonForCall, LPVOID) {
             // Setup and run thread to update presence data
             rpcThread = std::make_unique<std::thread>([timestamp]() {
 
-                std::string rootDir = getCWD(MODNAME);
-
                 // Initialize Discord RPC
                 discord::Core* core{};
                 auto result = discord::Core::Create(798867051820351539, DiscordCreateFlags_NoRequireDiscord, &core);
 
                 // Main job
                 while (shouldRun()) {
-                    updatePresence(rootDir, core, timestamp);
+                    updatePresence(core);
                     std::this_thread::sleep_for(2000ms);
                 }
 
@@ -127,12 +127,12 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reasonForCall, LPVOID) {
 }
 
 
-void updatePresence(std::string rootDir, discord::Core* core, unsigned long long timestamp) {
+void updatePresence(discord::Core* core) {
     // Only attempt updating presence if file exists
-    if (std::filesystem::exists(rootDir + "middleman.json")) {
+    if (std::filesystem::exists(rootDir / "middleman.json")) {
 
         // Open and read json
-        std::ifstream middlemanFile (rootDir + "middleman.json");
+        std::ifstream middlemanFile (rootDir / "middleman.json");
         if (middlemanFile.is_open()) {
             jsoncons::json middleman = jsoncons::json::parse(middlemanFile);
             middlemanFile.close();
@@ -153,31 +153,4 @@ void updatePresence(std::string rootDir, discord::Core* core, unsigned long long
             core->RunCallbacks();
         }
     }
-}
-
-
-std::string getCWD(std::string modName) {
-    // Find Lua companion mod dir
-    if (std::filesystem::exists("bin/x64/plugins/cyber_engine_tweaks/mods/" + modName + "/init.lua")) {
-        return "bin/x64/plugins/cyber_engine_tweaks/mods/" + modName + "/";
-    }
-    if (std::filesystem::exists("x64/plugins/cyber_engine_tweaks/mods/" + modName + "/init.lua")) {
-        return "x64/plugins/cyber_engine_tweaks/mods/" + modName + "/";
-    }
-    if (std::filesystem::exists("plugins/cyber_engine_tweaks/mods/" + modName + "/init.lua")) {
-        return "plugins/cyber_engine_tweaks/mods/" + modName + "/";
-    }
-    if (std::filesystem::exists("cyber_engine_tweaks/mods/" + modName + "/init.lua")) {
-        return "cyber_engine_tweaks/mods/" + modName + "/";
-    }
-    if (std::filesystem::exists("mods/" + modName + "/init.lua")) {
-        return "mods/" + modName + "/";
-    }
-    if (std::filesystem::exists("" + modName + "/init.lua")) {
-        return "" + modName + "/";
-    }
-    if (std::filesystem::exists("init.lua")) {
-        return "";
-    }
-    return "null";
 }
