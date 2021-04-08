@@ -24,7 +24,7 @@ function getCWD(mod_name)
     if fileExists("bin/x64/plugins/cyber_engine_tweaks/mods/"..mod_name.."/init.lua") then return "bin/x64/plugins/cyber_engine_tweaks/mods/"..mod_name.."/" elseif fileExists("x64/plugins/cyber_engine_tweaks/mods/"..mod_name.."/init.lua") then return "x64/plugins/cyber_engine_tweaks/mods/"..mod_name.."/" elseif fileExists("plugins/cyber_engine_tweaks/mods/"..mod_name.."/init.lua") then return "plugins/cyber_engine_tweaks/mods/"..mod_name.."/" elseif fileExists("cyber_engine_tweaks/mods/"..mod_name.."/init.lua") then return "cyber_engine_tweaks/mods/"..mod_name.."/" elseif fileExists("mods/"..mod_name.."/init.lua") then return "mods/"..mod_name.."/" elseif  fileExists(mod_name.."/init.lua") then return mod_name.."/" elseif  fileExists("init.lua") then return "" end
 end
 function getGameVersion()
-    version = tostring(Game.EnumValueFromString("gameGameVersion", "Current")) version = version:sub(1, 1) .. "." .. version:sub(2, -1) while version:sub(-1, -1) == "0" do version = version:sub(1, -2) end if version:sub(-1, -1) == "." then version = version .. "0" end return version
+    return ({string.format("%.3f", Game.EnumValueFromString("gameGameVersion", "Current") / 1000):gsub("00$", "0"):gsub("0$", "")})[1]
 end
 
 
