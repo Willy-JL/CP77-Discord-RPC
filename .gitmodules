@@ -1,0 +1,6 @@
+[submodule "cp2077-cet-kit"]
+	path = cp2077-cet-kit
+	url = git://github.com/psiberx/cp2077-cet-kit.git
+[submodule "discord-game-sdk-binaries"]
+	path = discord-game-sdk-binaries
+	url = git://github.com/Willy-JL/discord-game-sdk-binaries.git

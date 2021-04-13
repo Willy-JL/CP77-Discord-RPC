@@ -7,5 +7,3 @@ build/
 dist/
 package/
 *.log
-discord_game_sdk.dll
-GameUI.lua
