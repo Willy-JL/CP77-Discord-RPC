@@ -14,6 +14,7 @@ using namespace std::chrono_literals;
 
 constexpr auto MODNAME = "CP77 Discord RPC"sv;
 
+static discord::Core* core{};
 static std::filesystem::path rootDir;
 static HANDLE modInstanceMutex { nullptr };
 static std::unique_ptr<std::thread> rpcThread { };
@@ -21,7 +22,7 @@ static std::atomic_bool rpcThreadRunning { true };
 static unsigned long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
 
-void updatePresence(discord::Core*);
+discord::Result updatePresence();
 bool shouldRun() {
     return rpcThreadRunning;
 }
@@ -81,9 +82,6 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reasonForCall, LPVOID) {
                 break;
             }
 
-            // Get process start time
-            auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-
             // Create mutex for single instancing
             modInstanceMutex = CreateMutexW(NULL, TRUE, L"DiscordRPCHelper Instance");
             if (!modInstanceMutex) {
@@ -91,16 +89,26 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reasonForCall, LPVOID) {
             }
 
             // Setup and run thread to update presence data
-            rpcThread = std::make_unique<std::thread>([timestamp]() {
+            rpcThread = std::make_unique<std::thread>([]() {
 
                 // Initialize Discord RPC
-                discord::Core* core{};
-                auto result = discord::Core::Create(798867051820351539, DiscordCreateFlags_NoRequireDiscord, &core);
+                discord::Core::Create(798867051820351539, DiscordCreateFlags_NoRequireDiscord, &core);
 
                 // Main job
                 while (shouldRun()) {
-                    updatePresence(core);
+
+                    // Update presence
+                    auto result = updatePresence();
+
+                    // Try reconnecting if Discord was not found
+                    // if (result == discord::Result::NotRunning) {
+                    //     discord::Core::Create(798867051820351539, DiscordCreateFlags_NoRequireDiscord, &core);
+                    // }
+                    // Crashes the game, big daddy discord is mean and doesn't want multiple sdk inits
+
+                    // Only update every 2 seconds
                     std::this_thread::sleep_for(2000ms);
+
                 }
 
             });
@@ -127,7 +135,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reasonForCall, LPVOID) {
 }
 
 
-void updatePresence(discord::Core* core) {
+discord::Result updatePresence() {
     // Only attempt updating presence if file exists
     if (std::filesystem::exists(rootDir / "middleman.json")) {
 
@@ -150,7 +158,9 @@ void updatePresence(discord::Core* core) {
 
             // Update activity
             core->ActivityManager().UpdateActivity(activity, [](discord::Result result) { });
-            core->RunCallbacks();
+            return core->RunCallbacks();
         }
+    } else {
+        return discord::Result::Ok;
     }
 }
