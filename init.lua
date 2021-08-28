@@ -28,9 +28,9 @@ function getGameVersion()
 end
 
 
-CP77DiscordRPC = { 
+CP77DiscordRPC = {
     description = "CP77 Discord RPC",
-    version = "3.0",
+    version = "3.0h1",
     rootPath =  getCWD("CP77 Discord RPC"),
     middlemanPath = getCWD("CP77 Discord RPC") .. "middleman.json",
     timer = 2,
