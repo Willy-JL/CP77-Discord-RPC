@@ -1,0 +1,45 @@
+name: Package
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  Package:
+
+    name: Package
+    runs-on: windows-2019
+
+    steps:
+
+      - name: Clone repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Get short SHA string
+        uses: benjlevesque/short-sha@v1.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+
+      - name: Update xmake repo
+        run: xmake.exe repo --update
+
+      - name: Configure xmake
+        run: xmake.exe config --arch=x64 --mode=release --yes
+
+      - name: Build
+        run: xmake.exe
+
+      - name: Package
+        run: xmake.exe package
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: CP77-Discord-RPC-${{ steps.short-sha.outputs.sha }}
+          path: package/**
