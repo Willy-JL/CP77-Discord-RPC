@@ -30,7 +30,7 @@ end
 
 CP77DiscordRPC = {
     description = "CP77 Discord RPC",
-    version = "3.0h1",
+    version = "3.0h2",
     rootPath =  getCWD("CP77 Discord RPC"),
     middlemanPath = getCWD("CP77 Discord RPC") .. "middleman.json",
     timer = 2,
